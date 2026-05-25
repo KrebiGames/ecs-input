@@ -7,33 +7,29 @@ using Friflo.Engine.Unity;
 namespace ECS.Input {
 	[RequireComponent(typeof(PlayerInput))]
 	public class InputActionAuthoring : MonoBehaviour {
-		[SerializeField]
-		[GUIColor("@inputAction == null ? Color.red : Color.white")]
+		[SerializeField, GUIColor("@inputAction == null ? Color.red : Color.white")]
 		private InputActionReference inputAction;
 
-		[SerializeReference]
-		[GUIColor("@valueComponent == null ? new Color(1f, 0.3f, 0.3f) : Color.white")]
-		[ShowIf("@inputAction != null && actionType != UnityEngine.InputSystem.InputActionType.Button")]
+		[SerializeReference, HideIf("IsButton"), GUIColor("@valueTag == null ? new Color(1f, 0.3f, 0.3f) : Color.white")]
+		private ITag valueTag;
+		[SerializeReference, HideIf("IsButton"), GUIColor("@valueComponent == null ? new Color(1f, 0.3f, 0.3f) : Color.white")]
 		private IComponent valueComponent;
 
-		[SerializeReference]
-		[GUIColor("@buttonComponent == null ? new Color(1f, 0.3f, 0.3f) : Color.white")]
-		[ShowIf("@inputAction != null && actionType == UnityEngine.InputSystem.InputActionType.Button")]
-		private ITag buttonComponent;
+		[SerializeReference, ShowIf("IsButton"), GUIColor("@buttonTag == null ? new Color(1f, 0.3f, 0.3f) : Color.white")]
+		private ITag buttonTag;
 
-		[SerializeField, HideInInspector]
-		private InputActionType actionType;
 
-		private void OnValidate() {
-			if (inputAction != null && inputAction.action != null)
-				actionType = inputAction.action.type;
-		}
+		private bool IsButton()
+			=> inputAction != null && inputAction.action != null && inputAction.action.type == InputActionType.Button;
+
 
 		private void Start() {
 			var playerInput = GetComponent<PlayerInput>();
 
-			if (inputAction == null || inputAction.action == null)
+			if (inputAction == null || inputAction.action == null) {
+				Debug.LogError($"No InputAction assigned for '{name}'", this);
 				return;
+			}
 
 			var action = playerInput.actions[inputAction.action.name];
 
@@ -41,14 +37,19 @@ namespace ECS.Input {
 				new PlayerId { Value = playerInput.playerIndex },
 				new Action { Value = action });
 
-			if (actionType == InputActionType.Button) {
-				if (buttonComponent != null && action.type == InputActionType.Button) {
-					entity.AddTag(buttonComponent);
-					entity.AddTag<ButtonAction>();
+			if (IsButton()) {
+				if (buttonTag == null) Debug.LogError($"No Button Tag assigned for '{name}'", this);
+				else {
+					entity.AddTag<Button>();
+					entity.AddTag(buttonTag);
 				}
 			} else {
-				if (valueComponent != null)
-					entity.AddComponent(valueComponent);
+				if (valueTag == null || valueComponent == null) {
+					Debug.LogError($"No Value Tag or Value Component assigned for '{name}'", this);
+					return;
+				}
+				entity.AddTag(valueTag);
+				entity.AddComponent(valueComponent);
 			}
 
 			Destroy(this);

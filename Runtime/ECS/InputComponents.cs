@@ -6,7 +6,7 @@ namespace ECS.Input {
 
 	public struct Action : IComponent { public InputAction Value; }
 
-	public struct ButtonAction : ITag { }
+	public struct Button : ITag { }
 
 	public struct WasPressedThisFrame : ITag { }
 	public struct IsPressed : ITag { }
